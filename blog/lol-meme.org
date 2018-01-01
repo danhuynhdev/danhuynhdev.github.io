@@ -1,0 +1,180 @@
+#+TITLE:       Make a league of legends champion encoder
+#+AUTHOR:      danhuynh
+#+EMAIL:       danhuynhdev@gmail.com
+#+DATE:        2017-05-26 T2
+#+URI:         /blog/%y/%m/%d/a
+#+KEYWORDS:    lol, league of legends, league, reddit, rails, ruby, encoder
+#+TAGS:        rails, ruby, lol
+#+LANGUAGE:    en
+#+OPTIONS:     H:3 num:nil toc:nil \n:nil ::t |:t ^:nil -:nil f:t *:t <:t
+#+DESCRIPTION: Writing a simple meme generator with rails
+
+* The reason I wrote this thing
+  I'm a big fan of league of legends, so I really wan't to write something for it in my free time.
+  So after I saw [[https://www.facebook.com/leagueoflegends/photos/a.244834685555.296890.82061850555/10158957718340556/?type=3][this post]] on League's facebook page, I decided to automate making champion name encoded meme for fun.
+  [[https://www.reddit.com/r/leagueoflegends/comments/6d1458/i_wrote_a_league_champion_name_encoder_for_easy/][the reddit thread for this post]] received a lot of upvote from the league community so I kind of happy about it.
+* The technical side
+** Use cases
+   User should be able to submit a string and receive a image consist of champion portraits
+   with the first letter in their name combine back to the string the user submitted
+
+   Eg: `always ban yasuo` will return this image
+   [[file:./always-ban-yasuo.png]]
+** Solution
+   1. First I have to grab all the champion portraits in the game
+   2. I will write a rails app to get the string from user
+   3. The server will receive that string and process it into a png and render that png on the web site
+** Grab champion portraits
+   I took all the champion portraits from the [[http://leagueoflegends.wikia.com/wiki/Category:Champion_squares][lol wiki site]]
+   using this simple script:
+   #+BEGIN_SRC javascript
+   // get all the portraits links in the wiki
+   let links = Array.from(document.querySelectorAll('#mw-category-media > ul > li > div > div.thumb > div > a'))
+
+
+   // filter out all ultimate skin portraits
+   links = links.filter(a => !a.href.includes('_Lux') && !a.href.includes('Mega') && !a.href.includes('DJ') && !a.href.includes('Pulsefire')&& !a.href.includes('Spirit'))
+
+   // map wiki links into actual image links
+   var img_links = links.map(link => {
+     var a = document.createElement('a')
+     a.href = link.children[0].src
+     // set the download attribute so it will download the image when we click the link
+     a.download = link.children[0].alt
+     return a
+   })
+
+   // download the images by clicking on the links
+   img_links.forEach(a => {
+     document.body.appendChild(a)
+     a.click()
+     document.body.removeChild(a)
+   })
+   #+END_SRC
+** Create the rails site
+   The site doesn't need a database because I don't save anything server side so I will generate
+   a rails app without activerecord
+   #+BEGIN_SRC
+   rails new league-champion-encoder -o
+   #+END_SRC
+   generate controller for meme
+   #+BEGIN_SRC
+   rails g controller memes
+   #+END_SRC
+   set up routes
+   #+BEGIN_SRC ruby
+   # routes.rb
+   rails.application.routes.draw do
+     root 'memes#index'
+
+     post '/', to: 'memes#create'
+   end
+   #+END_SRC
+   set up views
+   #+BEGIN_SRC html
+   # app/views/memes/index.html.erb
+
+   <%= form_tag({}, class: 'pure-form pure-form-stacked') do %>
+     <%= label_tag(:text, "meme text:") %>
+     <%= text_field_tag :text , "", class: 'pure-input-1' %>
+     <div class="pure-u-1-3">&nbsp;</div>
+     <%= submit_tag("generate", class: 'pure-button pure-input-1-3 pure-button-primary') %>
+   <% end %>
+
+   <div class="pure-g">
+     <% if @meme %>
+       <a href="<%= @meme %>", download="meme.png" class="pure-img-responsive">
+         <%= image_tag @meme%>
+       </a>
+     <% end %>
+   </div>
+   #+END_SRC
+   set up the controller
+   #+BEGIN_SRC ruby
+   # app/controllers/memes_controller.rb
+
+   class memescontroller < applicationcontroller
+     def index
+     end
+
+     def create
+       # generate_meme will be the jelly and butter of the app
+       # @meme = generate_meme(meme_params[:text])
+
+       if @meme
+         render :index
+       else
+         redirect_to root_path, flash: { error: 'too long or invalid text' }
+       end
+     end
+
+     private
+
+     def meme_params
+       params.permit(:text)
+     end
+   end
+   #+END_SRC
+   after all of that we will have this site (i use purecss to give the site a little bit styling)
+   [[file:./generator.png]]
+
+** Generate the image
+   For the generating the image I will use this gem [[http://chunkypng.com/][chunky_png]]
+   - first I group all the portraits into folder like this so I can get portrait faster by using the first letter
+     #+BEGIN_SRC text
+        champions
+        ├── a
+        │   ├── aatroxsquare.png
+        │   ├── ahrisquare.png
+        │   ├── akalisquare.png
+        │   ├── alistarsquare.png
+        │   ├── amumusquare.png
+        │   ├── aniviasquare.png
+        │   ├── anniesquare.png
+        │   ├── ashesquare.png
+        │   ├── aurelion_solsquare.png
+        │   └── azirsquare.png
+        ├── b
+        │   ├── bardsquare.png
+        │   ├── blitzcranksquare.png
+        │   ├── brandsquare.png
+        │   └── braumsquare.png
+        ├── c
+        │   ├── caitlynsquare.png
+        ........
+     #+END_SRC
+   - then I use this function for generating the image
+     #+BEGIN_SRC ruby
+     def generate_meme(text)
+       # if the text contain special character then the function fail
+       return nil unless text =~ /^[a-za-z\s]+$/
+
+       # if the text is too long the the function also fail
+       return nil if text.length > 50
+
+       # split the string into many words
+       words = text.upcase.split(/\s+/)
+       # get length of the longest word to know the width of the image
+       max_length = words.map(&:length).max
+
+       # create the empty image
+       png = chunkypng::image.new(120 * max_length, 130 * words.length - 10, chunkypng::color::white)
+
+       words.each.with_index do |word, i|
+         word.each_char.with_index do |c, j|
+           # get a random portrait base on the character
+           path = dir.glob(
+             rails.root.join('app', 'assets', 'images', 'champions', c, '*')
+           ).sample
+
+           image = chunkypng::image.from_file(path)
+
+           # write that portrait onto the empty image
+           png.compose!(image, j * 120, i * 130)
+         end
+       end
+
+       # return the data url to display on the site
+       png.to_data_url
+     end
+     #+END_SRC

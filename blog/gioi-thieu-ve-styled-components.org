@@ -1,0 +1,179 @@
+#+TITLE:       Giới thiệu cơ bản về Styled components
+#+AUTHOR:      danhuynhdev
+#+EMAIL:       danhuynhdev@gmail.com
+#+DATE:        2017-07-10
+#+URI:         /blog/%y/%m/%d/gioi-thieu-ve-styled-components
+#+KEYWORDS:    styled components, css, react, style, styling, es6
+#+TAGS:        react, css
+#+LANGUAGE:    vi
+#+OPTIONS:     H:3 num:nil toc:nil \n:nil ::t |:t ^:nil -:nil f:t *:t <:t
+
+* Styled components là gì?
+** Phương pháp css truyền thống
+   Trước khi nói về styled components chúng ta phải nói về phương pháp
+   truyền thống khi tiếp cận đến việc *làm đẹp* cho một trang web. Thông
+   thường việc này sẽ được thực hiện theo những bước sau:
+      1. Xây dựng các thành phần HTML
+         #+BEGIN_EXAMPLE
+         <div class="content">
+           <span>This is a span</span>
+         </div>
+         #+END_EXAMPLE
+      2. Dùng các selector (className, id, element name) để làm đẹp những
+         element này trong một file css riêng
+         #+BEGIN_SRC css
+         .content {
+           background-color: #000;
+         }
+
+         .content > span {
+           color: #fff;
+         }
+         #+END_SRC
+         Đây là cách tiếp cận truyền thống đối nhưng nó lại không hoàn toàn phù
+         hợp cho việc viết React vì những nhược điểm sau:
+         - Các class, id trong css được dùng chung cho cả trang web dẫn đến việc conflict khi đặt tên
+           cho class, id (có thể được giải quyết bằng naming convention như
+           [[http://getbem.com][BEM]], hay với [[https://github.com/css-modules/css-modules][Webpack css module]])
+         - Việc thay đổi style, animation dựa trên đầu vào và trạng thái của
+           element khá rắc rối và không tự nhiên
+         - Việc đặt css ở một file riêng thường được cho là *best practice* cho
+           *seperation of concerns* nhưng sự tách biệt giữa css và html hay js
+           không thực sự là *seperation of concerns* mà là *seperation of Technologies*.
+           Trích từ [[http://blog.andrewray.me/youre-missing-the-point-of-jsx/][You're
+           Missing The Point Of JSX]]
+
+** Into Styled Components
+   [[https://s3-ap-southeast-1.amazonaws.com/kipalog.com/ymafmed7mh_image.png]]
+   Với [[https://www.styled-components.com/][Styled Components]] thay vì sử
+   dụng những selector để *làm đẹp* cho element như trên chúng ta sẽ định
+   nghĩa những components với style chỉ dành riêng cho bản thân nó. Sau đây
+   sẽ là component trên viết lại bằng styled components:
+
+    #+BEGIN_SRC javascript
+       // chúng ta tạo một styled div component bằng cách sau
+       // Note: styled.div chỉ là một function bình thường
+       //       việc gọi function với dấu `` là một tính năng của es6
+       //       func`abc` sẽ tương đương với func(['abc'])
+       //       func`abc ${variable} def` sẽ tương đương với func(['abc ', ' def'], variable)
+       const MyComponent = styled.div`
+         background-color: #000;
+
+         > span {
+           color: #fff;
+         }
+       `;
+
+       export default () => (
+         <MyComponent>
+           <span>This is a span</span>
+         </MyComponent>
+       );
+   #+END_SRC
+
+   hoặc cách thứ 2 mà mình thích hơn
+
+   #+BEGIN_SRC javascript
+       // component phải nhận props className để có thể dùng theo cách này
+       const MyComponent = ({ className }) => (
+         <div className={className}>
+           <span>This is a span</span>
+         </div>
+       );
+
+       const MyStyledComponent = styled(MyComponent)`
+          background-color: #000;
+
+         > span {
+           color: #fff;
+         }
+       `;
+
+       export default MyStyledComponent;
+   #+END_SRC
+
+* Lợi ích của Styled Components
+** Encapsulate (đóng gói) style vào trong component trong js
+
+   Styled component cho phép chúng ta encapsulate (đóng gói) style vào
+   trong component trong js nhưng vẫn giữ được những tính năng của css như
+   nesting, media query, pseudo-selectors, v.v. Điều này giải quyết vấn đề
+   =global scope= của css bởi vì chúng ta không còn phải viết các
+   =selector= cho =class= hay =id=. Styled component làm được điều này nhờ
+   việc generate tên class ngẫu nhiên và truyền vào component thông qua
+   property =className= như có thể thấy ở ví dụ trên.
+   [[https://s3-ap-southeast-1.amazonaws.com/kipalog.com/fhk9xdxxb3_image.png]]
+   Tên class ngẫu nhiên ở runtime
+
+   Thêm vào đó styled component còn thực hiện việc auto-prefixing như sass
+   để hỗ trợ những tính năng mới như =flexbox= cho những trình duyệt cũ hơn
+   [[https://s3-ap-southeast-1.amazonaws.com/kipalog.com/i401xhcukg_image.png]]
+   css được inject ở runtime
+** Thay đổi style dựa trên thuộc tính hoặc trạng thái của component dễ dàng hơn
+   Mình sẽ thể hiện lợi ích này thông qua các ví dụ sau:
+*** *Trường hợp 1:*
+    Chúng ta có một button có 2 trạng thái bình thường và disable. Thông
+    thường chúng ta sẽ viết như sau:
+
+    #+BEGIN_SRC javascript
+        // js
+        const Button = ({ disable }) => (
+          <button disable className={'btn' + (disable ? ' disable' : '')}  />
+        );
+    #+END_SRC
+
+    #+BEGIN_SRC css
+        /* css */
+        .btn {
+          background: palevioletred;
+          color: white;
+          /* ... */
+        }
+
+        .disable {
+          background: white;
+          color: gray;
+        }
+    #+END_SRC
+
+    với styled component nó sẽ trở thành
+
+    #+BEGIN_SRC javascript
+        const Button = styled.button.attrs({
+          // pass property tới component thông qua hàm .attrs
+          disable: props => props.disable
+        })`
+          /* Thuộc tính css được tính dynamically dựa trên thuộc tính của component */
+          background: ${props => props.disable ? 'palevioletred' : 'white'};
+          color: ${props => props.disable ? 'white' : 'gray'};
+          /* ... */
+        `;
+    #+END_SRC
+*** *Trường hợp 2:*
+    Set =background=, =border-radius= của component bằng
+    =property= của component. Với css thông thường việc này chỉ có thể được
+    làm bằng cách set property =style= trên element (Mình có thể sai chỗ này
+    :laughing:). Nhưng có thể làm dễ dàng với styled-components.
+
+    #+BEGIN_SRC javascript
+        const Frame = styled.div`
+          // truyền biến vào css
+          background: ${props => props.background};
+          border-radius: ${props => props.borderRadius};
+          /* ... */
+        `;
+    #+END_SRC
+
+* Một số nhược điểm và hạn chế
+  - Tên class được generate ngẫu nhiên nên sẽ gây khó chịu cho người quen
+    debug css bằng tên class.
+  - Còn khá non trẻ nên chưa được kiểm duyệt tính scale trong các project
+    lớn
+  - Nhiều người vẫn không thích css trong js
+  - Có thể không hoạt động tốt với
+    [[https://www.styled-components.com/docs/advanced#existing-css][css
+    có sẵn]] dù mình chưa gặp vấn đề này bao giờ.
+  - Không được dùng =ref= trên component phải chuyển sang =innerRef= bởi vì
+    [[https://www.styled-components.com/docs/advanced#refs][ref sẽ được
+    truyền vào wrapper của styled component thay vì component mình
+    muốn.]]
