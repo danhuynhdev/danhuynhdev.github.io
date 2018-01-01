@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <title>Giới thiệu cơ bản về Styled components - (t/d)an&#39;s blog</title>
+    <meta charset="utf-8" />
+    <meta name="author" content="danhuynhdev" />
+    <meta name="keywords" content="styled components, css, react, style, styling, es6" />
+    <link rel="stylesheet" href="/media/css/main.css" type="text/css">
+    <link rel="stylesheet" href="/media/css/prettify.css" type="text/css">
+  </head>
+  <body class="container">
+    <div>
+      <header class="masthead">
+        <h1 class="masthead-title"><a href="/">(t/d)an&#39;s blog</a></h1>
+        <p>A web developer&#39;s notes</p>
+        <ul>
+          <li><a href="/blog/">Blog</a></li>
+          <li><a href="/tags/">Tags</a></li>
+          <li><a href="/about/">About</a></li>
+          <li><a href="http://github.com/danhuynhdev">GitHub</a></li>
+          <li><a href="/rss.xml">RSS</a></li>
+        </ul>
+        <form method="get" id="searchform" action="//www.google.com/search">
+          <input type="text" class="field" name="q" id="s" placeholder="Search">
+          <input type="hidden" name="as_sitesearch" value="tandev.me">
+        </form>
+      </header>
+    </div>
+
+<div>
+<div class="post">
+<h1>Giới thiệu cơ bản về Styled components</h1>
+
+<div id="outline-container-org639ee17" class="outline-2">
+<h2 id="org639ee17">Styled components là gì?</h2>
+<div class="outline-text-2" id="text-org639ee17">
+</div>
+<div id="outline-container-orgdf142e3" class="outline-3">
+<h3 id="orgdf142e3">Phương pháp css truyền thống</h3>
+<div class="outline-text-3" id="text-orgdf142e3">
+<p>
+Trước khi nói về styled components chúng ta phải nói về phương pháp
+truyền thống khi tiếp cận đến việc <b>làm đẹp</b> cho một trang web. Thông
+thường việc này sẽ được thực hiện theo những bước sau:
+</p>
+<ol class="org-ol">
+<li><p>
+Xây dựng các thành phần HTML
+</p>
+<pre class="example">
+&lt;div class="content"&gt;
+  &lt;span&gt;This is a span&lt;/span&gt;
+&lt;/div&gt;
+</pre></li>
+<li><p>
+Dùng các selector (className, id, element name) để làm đẹp những
+element này trong một file css riêng
+</p>
+<div class="org-src-container">
+<pre class="src src-css">.content {
+  background-color: #000;
+}
+
+.content &gt; span {
+  color: #fff;
+}
+</pre>
+</div>
+<p>
+Đây là cách tiếp cận truyền thống đối nhưng nó lại không hoàn toàn phù
+hợp cho việc viết React vì những nhược điểm sau:
+</p>
+<ul class="org-ul">
+<li>Các class, id trong css được dùng chung cho cả trang web dẫn đến việc conflict khi đặt tên
+cho class, id (có thể được giải quyết bằng naming convention như
+<a href="http://getbem.com">BEM</a>, hay với <a href="https://github.com/css-modules/css-modules">Webpack css module</a>)</li>
+<li>Việc thay đổi style, animation dựa trên đầu vào và trạng thái của
+element khá rắc rối và không tự nhiên</li>
+<li>Việc đặt css ở một file riêng thường được cho là <b>best practice</b> cho
+<b>seperation of concerns</b> nhưng sự tách biệt giữa css và html hay js
+không thực sự là <b>seperation of concerns</b> mà là <b>seperation of Technologies</b>.
+Trích từ <a href="http://blog.andrewray.me/youre-missing-the-point-of-jsx/">You're
+Missing The Point Of JSX</a></li>
+</ul></li>
+</ol>
+</div>
+</div>
+
+<div id="outline-container-org108f58b" class="outline-3">
+<h3 id="org108f58b">Into Styled Components</h3>
+<div class="outline-text-3" id="text-org108f58b">
+<p>
+<img src="https://s3-ap-southeast-1.amazonaws.com/kipalog.com/ymafmed7mh_image.png" alt="ymafmed7mh_image.png" />
+Với <a href="https://www.styled-components.com/">Styled Components</a> thay vì sử
+dụng những selector để <b>làm đẹp</b> cho element như trên chúng ta sẽ định
+nghĩa những components với style chỉ dành riêng cho bản thân nó. Sau đây
+sẽ là component trên viết lại bằng styled components:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-javascript">// chúng ta tạo một styled div component bằng cách sau
+// Note: styled.div chỉ là một function bình thường
+//       việc gọi function với dấu `` là một tính năng của es6
+//       func`abc` sẽ tương đương với func(['abc'])
+//       func`abc ${variable} def` sẽ tương đương với func(['abc ', ' def'], variable)
+const MyComponent = styled.div`
+  background-color: #000;
+
+  &gt; span {
+    color: #fff;
+  }
+`;
+
+export default () =&gt; (
+  &lt;MyComponent&gt;
+    &lt;span&gt;This is a span&lt;/span&gt;
+  &lt;/MyComponent&gt;
+);
+</pre>
+</div>
+
+<p>
+hoặc cách thứ 2 mà mình thích hơn
+</p>
+
+<div class="org-src-container">
+<pre class="src src-javascript">// component phải nhận props className để có thể dùng theo cách này
+const MyComponent = ({ className }) =&gt; (
+  &lt;div className={className}&gt;
+    &lt;span&gt;This is a span&lt;/span&gt;
+  &lt;/div&gt;
+);
+
+const MyStyledComponent = styled(MyComponent)`
+   background-color: #000;
+
+  &gt; span {
+    color: #fff;
+  }
+`;
+
+export default MyStyledComponent;
+</pre>
+</div>
+</div>
+</div>
+</div>
+
+<div id="outline-container-org8ba9f7a" class="outline-2">
+<h2 id="org8ba9f7a">Lợi ích của Styled Components</h2>
+<div class="outline-text-2" id="text-org8ba9f7a">
+</div>
+<div id="outline-container-org296b6cd" class="outline-3">
+<h3 id="org296b6cd">Encapsulate (đóng gói) style vào trong component trong js</h3>
+<div class="outline-text-3" id="text-org296b6cd">
+<p>
+Styled component cho phép chúng ta encapsulate (đóng gói) style vào
+trong component trong js nhưng vẫn giữ được những tính năng của css như
+nesting, media query, pseudo-selectors, v.v. Điều này giải quyết vấn đề
+<code>global scope</code> của css bởi vì chúng ta không còn phải viết các
+<code>selector</code> cho <code>class</code> hay <code>id</code>. Styled component làm được điều này nhờ
+việc generate tên class ngẫu nhiên và truyền vào component thông qua
+property <code>className</code> như có thể thấy ở ví dụ trên.
+<img src="https://s3-ap-southeast-1.amazonaws.com/kipalog.com/fhk9xdxxb3_image.png" alt="fhk9xdxxb3_image.png" />
+Tên class ngẫu nhiên ở runtime
+</p>
+
+<p>
+Thêm vào đó styled component còn thực hiện việc auto-prefixing như sass
+để hỗ trợ những tính năng mới như <code>flexbox</code> cho những trình duyệt cũ hơn
+<img src="https://s3-ap-southeast-1.amazonaws.com/kipalog.com/i401xhcukg_image.png" alt="i401xhcukg_image.png" />
+css được inject ở runtime
+</p>
+</div>
+</div>
+<div id="outline-container-orgde687ab" class="outline-3">
+<h3 id="orgde687ab">Thay đổi style dựa trên thuộc tính hoặc trạng thái của component dễ dàng hơn</h3>
+<div class="outline-text-3" id="text-orgde687ab">
+<p>
+Mình sẽ thể hiện lợi ích này thông qua các ví dụ sau:
+</p>
+</div>
+<div id="outline-container-org006d561" class="outline-4">
+<h4 id="org006d561"><b>Trường hợp 1:</b></h4>
+<div class="outline-text-4" id="text-org006d561">
+<p>
+Chúng ta có một button có 2 trạng thái bình thường và disable. Thông
+thường chúng ta sẽ viết như sau:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-javascript">// js
+const Button = ({ disable }) =&gt; (
+  &lt;button disable className={'btn' + (disable ? ' disable' : '')}  /&gt;
+);
+</pre>
+</div>
+
+<div class="org-src-container">
+<pre class="src src-css">/* css */
+.btn {
+  background: palevioletred;
+  color: white;
+  /* ... */
+}
+
+.disable {
+  background: white;
+  color: gray;
+}
+</pre>
+</div>
+
+<p>
+với styled component nó sẽ trở thành
+</p>
+
+<div class="org-src-container">
+<pre class="src src-javascript">const Button = styled.button.attrs({
+  // pass property tới component thông qua hàm .attrs
+  disable: props =&gt; props.disable
+})`
+  /* Thuộc tính css được tính dynamically dựa trên thuộc tính của component */
+  background: ${props =&gt; props.disable ? 'palevioletred' : 'white'};
+  color: ${props =&gt; props.disable ? 'white' : 'gray'};
+  /* ... */
+`;
+</pre>
+</div>
+</div>
+</div>
+<div id="outline-container-org2cd9992" class="outline-4">
+<h4 id="org2cd9992"><b>Trường hợp 2:</b></h4>
+<div class="outline-text-4" id="text-org2cd9992">
+<p>
+Set <code>background</code>, <code>border-radius</code> của component bằng
+<code>property</code> của component. Với css thông thường việc này chỉ có thể được
+làm bằng cách set property <code>style</code> trên element (Mình có thể sai chỗ này
+:laughing:). Nhưng có thể làm dễ dàng với styled-components.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-javascript">const Frame = styled.div`
+  // truyền biến vào css
+  background: ${props =&gt; props.background};
+  border-radius: ${props =&gt; props.borderRadius};
+  /* ... */
+`;
+</pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+<div id="outline-container-org984dff1" class="outline-2">
+<h2 id="org984dff1">Một số nhược điểm và hạn chế</h2>
+<div class="outline-text-2" id="text-org984dff1">
+<ul class="org-ul">
+<li>Tên class được generate ngẫu nhiên nên sẽ gây khó chịu cho người quen
+debug css bằng tên class.</li>
+<li>Còn khá non trẻ nên chưa được kiểm duyệt tính scale trong các project
+lớn</li>
+<li>Nhiều người vẫn không thích css trong js</li>
+<li>Có thể không hoạt động tốt với
+<a href="https://www.styled-components.com/docs/advanced#existing-css">css
+có sẵn</a> dù mình chưa gặp vấn đề này bao giờ.</li>
+<li>Không được dùng=ref= trên component phải chuyển sang =innerRef=bởi vì
+<a href="https://www.styled-components.com/docs/advanced#refs">ref sẽ được
+truyền vào wrapper của styled component thay vì component mình
+muốn.</a></li>
+</ul>
+</div>
+</div>
+
+</div>
+</div>
+    <div>
+      <div class="post-meta">
+        <span title="post date" class="post-info">2017-07-10</span>
+        <span title="last modification date" class="post-info">2018-01-01</span>
+        <span title="tags" class="post-info"><a href="/tags/react/">react</a>, <a href="/tags/css/">css</a></span>
+        <span title="author" class="post-info">danhuynhdev</span>
+      </div>
+      <section>
+        <h1>Comments</h1>
+      </section>
+      <script src="//code.jquery.com/jquery-latest.min.js"></script>
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/prettify/r298/prettify.js"></script>
+      <script src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+      <script src="/media/js/main.js"></script>
+      <div class="footer">
+        <p>Generated by <a href="http://www.gnu.org/software/emacs/">Emacs</a> 25.x (<a href="http://orgmode.org">Org mode</a> 9.x)</p>
+        <p>
+          Copyright &copy; 2012 - <span id="footerYear"></span> <a href="mailto:danhuynhdev &lt;at&gt; gmail &lt;dot&gt; com">danhuynhdev</a>
+          &nbsp;&nbsp;-&nbsp;&nbsp;
+          Powered by <a href="https://github.com/kelvinh/org-page" target="_blank">org-page</a>
+          <script type="text/javascript">document.getElementById("footerYear").innerHTML = (new Date()).getFullYear();</script>
+        </p>
+      </div>
+    </div>
+
+  </body>
+</html>

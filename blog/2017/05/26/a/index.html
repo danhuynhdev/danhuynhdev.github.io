@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <title>Make a league of legends champion encoder - (t/d)an&#39;s blog</title>
+    <meta charset="utf-8" />
+    <meta name="author" content="danhuynh" />
+    <meta name="description" content="Writing a simple meme generator with rails" />
+    <meta name="keywords" content="lol, league of legends, league, reddit, rails, ruby, encoder" />
+    <link rel="stylesheet" href="/media/css/main.css" type="text/css">
+    <link rel="stylesheet" href="/media/css/prettify.css" type="text/css">
+  </head>
+  <body class="container">
+    <div>
+      <header class="masthead">
+        <h1 class="masthead-title"><a href="/">(t/d)an&#39;s blog</a></h1>
+        <p>A web developer&#39;s notes</p>
+        <ul>
+          <li><a href="/blog/">Blog</a></li>
+          <li><a href="/tags/">Tags</a></li>
+          <li><a href="/about/">About</a></li>
+          <li><a href="http://github.com/danhuynhdev">GitHub</a></li>
+          <li><a href="/rss.xml">RSS</a></li>
+        </ul>
+        <form method="get" id="searchform" action="//www.google.com/search">
+          <input type="text" class="field" name="q" id="s" placeholder="Search">
+          <input type="hidden" name="as_sitesearch" value="tandev.me">
+        </form>
+      </header>
+    </div>
+
+<div>
+<div class="post">
+<h1>Make a league of legends champion encoder</h1>
+
+<div id="outline-container-org069404d" class="outline-2">
+<h2 id="org069404d">The reason I wrote this thing</h2>
+<div class="outline-text-2" id="text-org069404d">
+<p>
+I'm a big fan of league of legends, so I really wan't to write something for it in my free time.
+So after I saw <a href="https://www.facebook.com/leagueoflegends/photos/a.244834685555.296890.82061850555/10158957718340556/?type=3">this post</a> on League's facebook page, I decided to automate making champion name encoded meme for fun.
+<a href="https://www.reddit.com/r/leagueoflegends/comments/6d1458/i_wrote_a_league_champion_name_encoder_for_easy/">the reddit thread for this post</a> received a lot of upvote from the league community so I kind of happy about it.
+</p>
+</div>
+</div>
+<div id="outline-container-orgb49e12b" class="outline-2">
+<h2 id="orgb49e12b">The technical side</h2>
+<div class="outline-text-2" id="text-orgb49e12b">
+</div>
+<div id="outline-container-orgffecb1a" class="outline-3">
+<h3 id="orgffecb1a">Use cases</h3>
+<div class="outline-text-3" id="text-orgffecb1a">
+<p>
+User should be able to submit a string and receive a image consist of champion portraits
+with the first letter in their name combine back to the string the user submitted
+</p>
+
+<p>
+Eg: `always ban yasuo` will return this image
+<img src="/assets/blog/2017/05/26/a/always-ban-yasuo.png" alt="always-ban-yasuo.png" />
+</p>
+</div>
+</div>
+<div id="outline-container-orge53207f" class="outline-3">
+<h3 id="orge53207f">Solution</h3>
+<div class="outline-text-3" id="text-orge53207f">
+<ol class="org-ol">
+<li>First I have to grab all the champion portraits in the game</li>
+<li>I will write a rails app to get the string from user</li>
+<li>The server will receive that string and process it into a png and render that png on the web site</li>
+</ol>
+</div>
+</div>
+<div id="outline-container-org97b4ffd" class="outline-3">
+<h3 id="org97b4ffd">Grab champion portraits</h3>
+<div class="outline-text-3" id="text-org97b4ffd">
+<p>
+I took all the champion portraits from the <a href="http://leagueoflegends.wikia.com/wiki/Category:Champion_squares">lol wiki site</a>
+using this simple script:
+</p>
+<div class="org-src-container">
+<pre class="src src-javascript">// get all the portraits links in the wiki
+let links = Array.from(document.querySelectorAll('#mw-category-media &gt; ul &gt; li &gt; div &gt; div.thumb &gt; div &gt; a'))
+
+
+// filter out all ultimate skin portraits
+links = links.filter(a =&gt; !a.href.includes('_Lux') &amp;&amp; !a.href.includes('Mega') &amp;&amp; !a.href.includes('DJ') &amp;&amp; !a.href.includes('Pulsefire')&amp;&amp; !a.href.includes('Spirit'))
+
+// map wiki links into actual image links
+var img_links = links.map(link =&gt; {
+  var a = document.createElement('a')
+  a.href = link.children[0].src
+  // set the download attribute so it will download the image when we click the link
+  a.download = link.children[0].alt
+  return a
+})
+
+// download the images by clicking on the links
+img_links.forEach(a =&gt; {
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+})
+</pre>
+</div>
+</div>
+</div>
+<div id="outline-container-org4da1c45" class="outline-3">
+<h3 id="org4da1c45">Create the rails site</h3>
+<div class="outline-text-3" id="text-org4da1c45">
+<p>
+The site doesn't need a database because I don't save anything server side so I will generate
+a rails app without activerecord
+</p>
+<pre class="example">
+rails new league-champion-encoder -o
+</pre>
+<p>
+generate controller for meme
+</p>
+<pre class="example">
+rails g controller memes
+</pre>
+<p>
+set up routes
+</p>
+<div class="org-src-container">
+<pre class="src src-ruby"># routes.rb
+rails.application.routes.draw do
+  root 'memes#index'
+
+  post '/', to: 'memes#create'
+end
+</pre>
+</div>
+<p>
+set up views
+</p>
+<div class="org-src-container">
+<pre class="src src-html"># app/views/memes/index.html.erb
+
+&lt;%= form_tag({}, class: 'pure-form pure-form-stacked') do %&gt;
+  &lt;%= label_tag(:text, "meme text:") %&gt;
+  &lt;%= text_field_tag :text , "", class: 'pure-input-1' %&gt;
+  &lt;div class="pure-u-1-3"&gt;&amp;nbsp;&lt;/div&gt;
+  &lt;%= submit_tag("generate", class: 'pure-button pure-input-1-3 pure-button-primary') %&gt;
+&lt;% end %&gt;
+
+&lt;div class="pure-g"&gt;
+  &lt;% if @meme %&gt;
+    &lt;a href="&lt;%= @meme %&gt;", download="meme.png" class="pure-img-responsive"&gt;
+      &lt;%= image_tag @meme%&gt;
+    &lt;/a&gt;
+  &lt;% end %&gt;
+&lt;/div&gt;
+</pre>
+</div>
+<p>
+set up the controller
+</p>
+<div class="org-src-container">
+<pre class="src src-ruby"># app/controllers/memes_controller.rb
+
+class memescontroller &lt; applicationcontroller
+  def index
+  end
+
+  def create
+    # generate_meme will be the jelly and butter of the app
+    # @meme = generate_meme(meme_params[:text])
+
+    if @meme
+      render :index
+    else
+      redirect_to root_path, flash: { error: 'too long or invalid text' }
+    end
+  end
+
+  private
+
+  def meme_params
+    params.permit(:text)
+  end
+end
+</pre>
+</div>
+<p>
+after all of that we will have this site (i use purecss to give the site a little bit styling)
+<img src="/assets/blog/2017/05/26/a/generator.png" alt="generator.png" />
+</p>
+</div>
+</div>
+
+<div id="outline-container-org7c0c155" class="outline-3">
+<h3 id="org7c0c155">Generate the image</h3>
+<div class="outline-text-3" id="text-org7c0c155">
+<p>
+For the generating the image I will use this gem <a href="http://chunkypng.com/">chunky_png</a>
+</p>
+<ul class="org-ul">
+<li><p>
+first I group all the portraits into folder like this so I can get portrait faster by using the first letter
+</p>
+<div class="org-src-container">
+<pre class="src src-text">champions
+├── a
+│   ├── aatroxsquare.png
+│   ├── ahrisquare.png
+│   ├── akalisquare.png
+│   ├── alistarsquare.png
+│   ├── amumusquare.png
+│   ├── aniviasquare.png
+│   ├── anniesquare.png
+│   ├── ashesquare.png
+│   ├── aurelion_solsquare.png
+│   └── azirsquare.png
+├── b
+│   ├── bardsquare.png
+│   ├── blitzcranksquare.png
+│   ├── brandsquare.png
+│   └── braumsquare.png
+├── c
+│   ├── caitlynsquare.png
+........
+</pre>
+</div></li>
+<li><p>
+then I use this function for generating the image
+</p>
+<div class="org-src-container">
+<pre class="src src-ruby">def generate_meme(text)
+  # if the text contain special character then the function fail
+  return nil unless text =~ /^[a-za-z\s]+$/
+
+  # if the text is too long the the function also fail
+  return nil if text.length &gt; 50
+
+  # split the string into many words
+  words = text.upcase.split(/\s+/)
+  # get length of the longest word to know the width of the image
+  max_length = words.map(&amp;:length).max
+
+  # create the empty image
+  png = chunkypng::image.new(120 * max_length, 130 * words.length - 10, chunkypng::color::white)
+
+  words.each.with_index do |word, i|
+    word.each_char.with_index do |c, j|
+      # get a random portrait base on the character
+      path = dir.glob(
+        rails.root.join('app', 'assets', 'images', 'champions', c, '*')
+      ).sample
+
+      image = chunkypng::image.from_file(path)
+
+      # write that portrait onto the empty image
+      png.compose!(image, j * 120, i * 130)
+    end
+  end
+
+  # return the data url to display on the site
+  png.to_data_url
+end
+</pre>
+</div></li>
+</ul>
+</div>
+</div>
+</div>
+
+</div>
+</div>
+    <div>
+      <div class="post-meta">
+        <span title="post date" class="post-info">2017-05-26</span>
+        <span title="last modification date" class="post-info">2018-01-01</span>
+        <span title="tags" class="post-info"><a href="/tags/rails/">rails</a>, <a href="/tags/ruby/">ruby</a>, <a href="/tags/lol/">lol</a></span>
+        <span title="author" class="post-info">danhuynh</span>
+      </div>
+      <section>
+        <h1>Comments</h1>
+      </section>
+      <script src="//code.jquery.com/jquery-latest.min.js"></script>
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/prettify/r298/prettify.js"></script>
+      <script src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+      <script src="/media/js/main.js"></script>
+      <div class="footer">
+        <p>Generated by <a href="http://www.gnu.org/software/emacs/">Emacs</a> 25.x (<a href="http://orgmode.org">Org mode</a> 9.x)</p>
+        <p>
+          Copyright &copy; 2012 - <span id="footerYear"></span> <a href="mailto:danhuynhdev &lt;at&gt; gmail &lt;dot&gt; com">danhuynh</a>
+          &nbsp;&nbsp;-&nbsp;&nbsp;
+          Powered by <a href="https://github.com/kelvinh/org-page" target="_blank">org-page</a>
+          <script type="text/javascript">document.getElementById("footerYear").innerHTML = (new Date()).getFullYear();</script>
+        </p>
+      </div>
+    </div>
+
+  </body>
+</html>
